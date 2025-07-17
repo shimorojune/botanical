@@ -1,0 +1,15 @@
+---
+alwaysApply: true
+---
+
+This project is a forum where users can post ideas, discuss changes and debate decisions. The main problem with most forum apps is that people feel reluctant to start discussing topics, unless a discussion is already on-going. This leads to a chicken and egg problem for most topics.
+
+The key USP of this idea is that, along with users, bots will also participate in conversations. Bots of different (selectable) personalities will be allowed to contribute into forum posts when they see fit.
+
+"No conversation left unanswered", the tag line for this tool, aims to allow people within companies or by themselves to talk about their decisions with others, as well as bots that are configured the way they want. There can be supportive bots, critical bots, bots that keep a specific goal in mind, bots that emulate some famous personalities, the limits are endless.
+
+These bots also keep everything they learn in memories (embeddings). These memories can then be used to support answers in other threads. There would also private bots that can remember information from public threads, but keep the knowledge they gain from private threads to themselves. As I mentioned, the possibilities are endless.
+
+This forum could be setup as an internal chat bot within a company, used for a group of friends, to even someone solo playing a manager game wanting different kinds of discussions on the decisions he is making.
+
+In terms of tech stack, I am expecting to build this entirely in the Typescript stack. The front-end would either be NextJS or React, with the backend being a NodeJS fastify server, with Postgres as the database layer (prisma as the ORM). We would build the initial version using the Vercel AI sdk, but later move on to langchain if we can't achieve what we want with the AI SDK. AI Modals will be intern-changeable, but will be using Gemini or Open AI initially.

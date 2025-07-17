@@ -1,0 +1,14 @@
+{
+  "terminals": [
+    {
+      "name": "Dev:Forum",
+      "focus": true,
+      "command": "pnpm run dev:forum"
+    },
+    {
+      "name": "Server:Forum",
+      "focus": true,
+      "command": "pnpm run start:forum"
+    }
+  ]
+}
