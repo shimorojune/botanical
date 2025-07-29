@@ -1,103 +1,276 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useMemo } from "react";
+import {
+  Container,
+  Grid,
+  Stack,
+  Tabs,
+  Text,
+  Group,
+  Select,
+  Button,
+} from "@mantine/core";
+import { IconChevronDown } from "@tabler/icons-react";
+import { ForumHeader } from "../components/ForumHeader";
+import { ForumSidebar } from "../components/ForumSidebar";
+import { DiscussionItem } from "../components/DiscussionItem";
+import { PostCard } from "../components/PostCard";
+import { ReplyCard } from "../components/ReplyCard";
+import { NewPostModal } from "../components/NewPostModal";
+import {
+  mockCategories,
+  mockPosts,
+  mockUsers,
+  mockReplies,
+  mockStats,
+} from "../lib/mockData";
+import { Post, Reply, Category, User } from "../lib/types";
+
+type ViewMode = "discussions" | "post-detail";
+
+export default function ForumApp() {
+  const [viewMode, setViewMode] = useState<ViewMode>("discussions");
+  const [selectedView, setSelectedView] = useState("all");
+  const [selectedPostId, setSelectedPostId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newPostModalOpen, setNewPostModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("latest");
+  const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+
+  // Filter posts based on search and selected view
+  const filteredPosts = useMemo(() => {
+    let filtered = posts;
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (post) =>
+          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.tags.some((tag) =>
+            tag.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
+    }
+
+    // Sort posts
+    return filtered.sort((a, b) => {
+      // Pinned posts first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+
+      // Then by sort preference
+      if (sortBy === "latest") {
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      } else if (sortBy === "oldest") {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      } else if (sortBy === "replies") {
+        return b.replies.length - a.replies.length;
+      }
+      return 0;
+    });
+  }, [posts, searchQuery, sortBy]);
+
+  const selectedPost = posts.find((post) => post.id === selectedPostId);
+
+  const handleDiscussionClick = (postId: string) => {
+    setSelectedPostId(postId);
+    setViewMode("post-detail");
+  };
+
+  const handleCreatePost = (data: {
+    title: string;
+    content: string;
+    categoryId: string;
+    tags: string[];
+  }) => {
+    const category = categories.find((c) => c.id === data.categoryId);
+    if (!category) return;
+
+    const newPost: Post = {
+      id: `post-${Date.now()}`,
+      title: data.title,
+      content: data.content,
+      author: mockUsers[0], // Current user
+      category,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      likes: 0,
+      replies: [],
+      tags: data.tags,
+      isPinned: false,
+      isLocked: false,
+    };
+
+    setPosts((prev) => [newPost, ...prev]);
+
+    // Update category post count
+    setCategories((prev) =>
+      prev.map((cat) =>
+        cat.id === data.categoryId
+          ? { ...cat, postCount: cat.postCount + 1 }
+          : cat
+      )
+    );
+  };
+
+  const handleLikePost = (postId: string) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      )
+    );
+  };
+
+  const handleLikeReply = (replyId: string) => {
+    console.log("Like reply:", replyId);
+  };
+
+  const handleReply = (replyId: string) => {
+    console.log("Reply to:", replyId);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleBackToDiscussions = () => {
+    setViewMode("discussions");
+    setSelectedPostId("");
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gray-50">
+      <ForumHeader
+        onCreatePost={() => setNewPostModalOpen(true)}
+        onSearch={handleSearch}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="flex">
+        <ForumSidebar
+          onCreatePost={() => setNewPostModalOpen(true)}
+          selectedView={selectedView}
+          onViewChange={setSelectedView}
+        />
+
+        <div className="flex-1">
+          {viewMode === "discussions" ? (
+            <div className="bg-white">
+              {/* Header */}
+              <div className="border-b border-gray-200 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-gray-900 text-xl font-bold mb-1">
+                      {selectedView === "all"
+                        ? "All Discussions"
+                        : selectedView.charAt(0).toUpperCase() +
+                          selectedView.slice(1)}
+                    </h1>
+                    <p className="text-gray-600 text-sm">
+                      {filteredPosts.length} discussions
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Select
+                      value={sortBy}
+                      onChange={(value) => setSortBy(value || "latest")}
+                      data={[
+                        { value: "latest", label: "Latest" },
+                        { value: "oldest", label: "Oldest" },
+                        { value: "replies", label: "Most Replies" },
+                      ]}
+                      size="sm"
+                      rightSection={<IconChevronDown size={14} />}
+                      className="w-32"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Discussions List */}
+              <div>
+                {filteredPosts.map((post) => (
+                  <DiscussionItem
+                    key={post.id}
+                    post={post}
+                    onClick={handleDiscussionClick}
+                  />
+                ))}
+
+                {filteredPosts.length === 0 && (
+                  <div className="text-center py-16">
+                    <p className="text-gray-500 text-lg mb-2">
+                      No discussions found
+                    </p>
+                    <p className="text-gray-400 text-sm mb-6">
+                      Be the first to start a discussion!
+                    </p>
+                    <Button
+                      onClick={() => setNewPostModalOpen(true)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      Start a Discussion
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Post detail view
+            <div className="bg-white p-6">
+              <div className="mb-6">
+                <button
+                  onClick={handleBackToDiscussions}
+                  className="text-orange-500 hover:text-orange-600 text-sm font-medium mb-4"
+                >
+                  ← Back to discussions
+                </button>
+              </div>
+
+              {selectedPost && (
+                <div className="space-y-6">
+                  <PostCard
+                    post={selectedPost}
+                    onClick={() => {}}
+                    onLike={handleLikePost}
+                  />
+
+                  {selectedPost.replies.length > 0 && (
+                    <div>
+                      <h2 className="text-gray-900 text-lg font-semibold mb-4">
+                        {selectedPost.replies.length} replies
+                      </h2>
+                      <div className="space-y-4">
+                        {selectedPost.replies.map((reply) => (
+                          <ReplyCard
+                            key={reply.id}
+                            reply={reply}
+                            onLike={handleLikeReply}
+                            onReply={handleReply}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      <NewPostModal
+        opened={newPostModalOpen}
+        onClose={() => setNewPostModalOpen(false)}
+        onSubmit={handleCreatePost}
+        categories={categories}
+      />
     </div>
   );
 }
